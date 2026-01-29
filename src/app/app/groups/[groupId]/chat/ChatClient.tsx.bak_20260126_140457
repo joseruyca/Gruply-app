@@ -1,0 +1,1010 @@
+
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  Check,
+  CheckCheck,
+  ChevronLeft,
+  Copy,
+  Loader2,
+  Paperclip,
+  Pin,
+  PinOff,
+  Reply,
+  Send,
+  Settings,
+  Trash2,
+  Pencil,
+  X,
+} from "lucide-react";
+
+import { createClient } from "@/lib/supabase/client";
+
+type Msg = {
+  id: string;
+  group_id: string;
+  user_id: string;
+  message: string;
+  created_at: string;
+  edited_at?: string | null;
+  deleted_at?: string | null;
+  reply_to?: string | null;
+  attachment_path?: string | null;
+  attachment_mime?: string | null;
+  attachment_name?: string | null;
+  attachment_size?: number | null;
+  profiles?: { full_name?: string | null } | null;
+};
+
+function hhmm(iso: string) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "";
+  }
+}
+
+function dayLabel(iso: string) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString("es-ES", { weekday: "short", day: "2-digit", month: "short" });
+  } catch {
+    return "";
+  }
+}
+
+function cls(...xs: Array<string | false | null | undefined>) {
+  return xs.filter(Boolean).join(" ");
+}
+
+export default function ChatClient({
+  groupId,
+  myId,
+  initialMessages,
+  initialError,
+  groupName,
+  groupEmoji,
+}: {
+  groupId: string;
+  myId: string;
+  initialMessages: Msg[];
+  initialError: string | null;
+  groupName?: string;
+  groupEmoji?: string | null;
+}) {
+  const supabase = React.useMemo(() => createClient(), []);
+
+  const router = useRouter();
+
+  const [messages, setMessages] = React.useState<Msg[]>(initialMessages ?? []);
+  const [loadingMore, setLoadingMore] = React.useState(false);
+  const [draft, setDraft] = React.useState("");
+  const [sending, setSending] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(initialError);
+
+// Sync server props -> local state (para router.refresh y evitar estados �pegados�)
+React.useEffect(() => {
+  setMessages(initialMessages ?? []);
+  setError(initialError ?? null);
+}, [initialMessages, initialError]);
+
+// Ref para usar messages dentro de callbacks sin re-suscribir Realtime
+const messagesRef = React.useRef<Msg[]>(initialMessages ?? []);
+React.useEffect(() => {
+  messagesRef.current = messages;
+}, [messages]);
+
+  const [replyTo, setReplyTo] = React.useState<Msg | null>(null);
+  const [editing, setEditing] = React.useState<Msg | null>(null);
+  const [pendingFile, setPendingFile] = React.useState<File | null>(null);
+  const [uploading, setUploading] = React.useState(false);
+
+  const [menuFor, setMenuFor] = React.useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = React.useState(false);
+
+  const [pinned, setPinned] = React.useState<Msg | null>(null);
+  const [typingUsers, setTypingUsers] = React.useState<Record<string, { name: string; ts: number }>>({});
+  const [readState, setReadState] = React.useState<Record<string, string>>({}); // userId -> last_read_at
+
+  const listRef = React.useRef<HTMLDivElement | null>(null);
+  const atBottomRef = React.useRef(true);
+  const lastTypingSentAt = React.useRef(0);
+  const myName = React.useMemo(() => {
+    const mine = messages.find((m) => m.user_id === myId)?.profiles?.full_name;
+    return mine || "T�";
+  }, [messages, myId]);
+
+  // ---------- Helpers
+  const sorted = messages; // already asc
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+
+  const otherHasRead = React.useCallback(
+    (createdAt: string) => {
+      const t = new Date(createdAt).getTime();
+      for (const [uid, iso] of Object.entries(readState)) {
+        if (uid === myId) continue;
+        const x = new Date(iso).getTime();
+        if (!Number.isFinite(x)) continue;
+        if (x >= t) return true;
+      }
+      return false;
+    },
+    [readState, myId]
+  );
+
+  const scrollToBottom = React.useCallback((behavior: ScrollBehavior = "auto") => {
+    const el = listRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior });
+  }, []);
+
+  
+
+
+  const inputRef = React.useRef<HTMLTextAreaElement | null>(null);
+
+  const resizeInput = React.useCallback(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "0px";
+    const h = Math.min(el.scrollHeight, 112); // max ~7 líneas
+    el.style.height = h + "px";
+  }, []);
+
+  const nudgeBottom = React.useCallback(
+    (behavior: ScrollBehavior = "smooth") => {
+      requestAnimationFrame(() => scrollToBottom(behavior));
+      setTimeout(() => scrollToBottom(behavior), 80);
+    },
+    [scrollToBottom]
+  );
+
+  // Cuando cambia el texto, reajusta el input y si estamos abajo, mantenlo visible
+  React.useEffect(() => {
+    resizeInput();
+    if (atBottomRef.current) scrollToBottom("auto");
+  }, [draft, resizeInput, scrollToBottom]);
+
+  // Mobile keyboard: cuando cambia el viewport, mantén el chat abajo si estabas abajo
+  React.useEffect(() => {
+    const vv: any = (window as any).visualViewport;
+    if (!vv) return;
+    const onResize = () => {
+      if (atBottomRef.current) scrollToBottom("auto");
+    };
+    vv.addEventListener("resize", onResize);
+    return () => vv.removeEventListener("resize", onResize);
+  }, [scrollToBottom]);
+
+
+const markRead = React.useCallback(
+    async (iso: string) => {
+      if (!myId) return;
+      // tabla opcional (chat PRO). Si no existe, no rompemos.
+      const { error } = await supabase.from("group_chat_state").upsert(
+        {
+          group_id: groupId,
+          user_id: myId,
+          last_seen_at: new Date().toISOString(),
+          last_read_at: iso,
+        },
+        { onConflict: "group_id,user_id" }
+      );
+      if (error) {
+        // ignoramos: el chat sigue funcionando en modo básico
+      }
+    },
+    [supabase, groupId, myId]
+  );
+
+  // ---------- Initial loads (admin role, pinned, read state)
+  React.useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { data: mem } = await supabase
+          .from("group_members")
+          .select("role")
+          .eq("group_id", groupId)
+          .eq("user_id", myId)
+          .maybeSingle();
+        if (!cancelled) setIsAdmin((mem as any)?.role === "admin");
+      } catch {
+        // ignore
+      }
+
+      // pinned
+      try {
+        const { data } = await supabase
+          .from("group_message_pins")
+          .select("message_id, group_messages:group_messages(id,group_id,user_id,message,created_at,edited_at,deleted_at,reply_to,attachment_path,attachment_mime,attachment_name,attachment_size)")
+          .eq("group_id", groupId)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        const row: any = (data ?? [])[0];
+        if (!cancelled) setPinned((row?.group_messages as any) ?? null);
+      } catch {
+        // ignore
+      }
+
+      // read state
+      try {
+        const { data } = await supabase
+          .from("group_chat_state")
+          .select("user_id,last_read_at")
+          .eq("group_id", groupId);
+        if (cancelled) return;
+        const map: Record<string, string> = {};
+        for (const r of data ?? []) map[(r as any).user_id] = (r as any).last_read_at;
+        setReadState(map);
+      } catch {
+        // ignore
+      }
+
+      // jump to bottom initially
+      requestAnimationFrame(() => scrollToBottom("auto"));
+      if (last?.created_at) markRead(last.created_at);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase, groupId, myId, scrollToBottom]);
+
+  // ---------- Realtime
+  React.useEffect(() => {
+    if (!groupId) return;
+
+    const channel = supabase
+      .channel(`group_chat_${groupId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "group_messages", filter: `group_id=eq.${groupId}` },
+        (payload) => {
+          const row: any = payload.new;
+          // evitamos duplicados
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === row.id)) return prev;
+            const next = [...prev, row as Msg].sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
+            return next;
+          });
+
+          // si estamos abajo, bajamos y marcamos leído
+          if (atBottomRef.current) {
+            requestAnimationFrame(() => scrollToBottom("smooth"));
+      hardResetComposer(); // reset after optimisticif (row?.created_at) markRead(String(row.created_at));
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "group_messages", filter: `group_id=eq.${groupId}` },
+        (payload) => {
+          const row: any = payload.new;
+          setMessages((prev) => prev.map((m) => (m.id === row.id ? ({ ...m, ...row } as any) : m)));
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "group_message_pins", filter: `group_id=eq.${groupId}` },
+        async (payload) => {
+          const msgId = (payload.new as any).message_id;
+          const found = messagesRef.current.find((m) => m.id === msgId);
+          if (found) setPinned(found);
+          else {
+            // refetch
+            const { data } = await supabase
+              .from("group_messages")
+              .select("id,group_id,user_id,message,created_at,edited_at,deleted_at,reply_to,attachment_path,attachment_mime,attachment_name,attachment_size")
+              .eq("id", msgId)
+              .maybeSingle();
+            if (data) setPinned(data as any);
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "group_message_pins", filter: `group_id=eq.${groupId}` },
+        () => {
+          setPinned(null);
+        }
+      )
+      .on("broadcast", { event: "typing" }, ({ payload }) => {
+        const p: any = payload;
+        if (!p?.user_id || p.user_id === myId) return;
+        setTypingUsers((prev) => {
+          const next = { ...prev };
+          if (p.is_typing) next[p.user_id] = { name: p.name ?? "", ts: Date.now() };
+          else delete next[p.user_id];
+          return next;
+        });
+      })
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "group_chat_state", filter: `group_id=eq.${groupId}` },
+        (payload) => {
+          const row: any = payload.new;
+          setReadState((prev) => ({ ...prev, [row.user_id]: row.last_read_at }));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, groupId, myId, scrollToBottom, markRead]);
+
+  // Limpieza typing “fantasma”
+  React.useEffect(() => {
+    const t = setInterval(() => {
+      setTypingUsers((prev) => {
+        const next: typeof prev = {};
+        const now = Date.now();
+        for (const [uid, v] of Object.entries(prev)) {
+          if (now - v.ts < 5000) next[uid] = v;
+        }
+        return next;
+      });
+    }, 1500);
+    return () => clearInterval(t);
+  }, []);
+
+  // ---------- Scroll tracking
+  const onScroll = React.useCallback(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    atBottomRef.current = nearBottom;
+    if (nearBottom && last?.created_at) markRead(last.created_at);
+  }, [last?.created_at, markRead]);
+
+  // ---------- Loading older
+  const loadOlder = React.useCallback(async () => {
+    if (!first?.created_at) return;
+    setLoadingMore(true);
+    try {
+      const { data, error } = await supabase
+        .from("group_messages")
+        .select("id, group_id, user_id, message, created_at, edited_at, deleted_at, reply_to, attachment_path, attachment_mime, attachment_name, attachment_size, profiles:profiles!group_messages_user_id_profiles_fkey(full_name)")
+        .eq("group_id", groupId)
+        .lt("created_at", first.created_at)
+        .order("created_at", { ascending: false })
+        .limit(60);
+      if (error) throw error;
+      const older = (data ?? []).reverse() as any as Msg[];
+      setMessages((prev) => {
+        const existing = new Set(prev.map((m) => m.id));
+        const merged = [...older.filter((m) => !existing.has(m.id)), ...prev];
+        return merged;
+      });
+    } catch (e: any) {
+      setError(e?.message ? String(e.message) : "No se pudo cargar m�s mensajes");
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [supabase, groupId, first?.created_at]);
+
+  // ---------- Typing broadcast (throttled)
+  const broadcastTyping = React.useCallback(
+    async (isTyping: boolean) => {
+      const now = Date.now();
+      if (isTyping && now - lastTypingSentAt.current < 900) return;
+      lastTypingSentAt.current = now;
+      try {
+        await supabase.channel(`group_chat_${groupId}`).send({
+          type: "broadcast",
+          event: "typing",
+          payload: { user_id: myId, name: myName, is_typing: isTyping },
+        });
+      } catch {
+        // ignore
+      }
+    },
+    [supabase, groupId, myId, myName]
+  );
+
+  // ---------- Send / edit
+    const doSend = React.useCallback(async () => {
+    if (!myId) return;
+
+    const text = (draft ?? "").trim();
+    const file = pendingFile;
+    const replyId = replyTo?.id ?? null;
+
+    if (!text && !file && !editing) return;
+
+    let optimisticId: string | null = null;
+
+    setSending(true);
+    setError(null);
+
+    try {
+      // EDITAR
+      if (editing) {
+        const newText = (draft ?? "").trim();
+        if (!newText) return;
+
+        const { error } = await supabase
+          .from("group_messages")
+          .update({ message: newText, edited_at: new Date().toISOString() })
+          .eq("id", editing.id)
+          .eq("user_id", myId);
+
+        if (error) throw error;
+
+        // limpiar UI
+        hardResetComposer();
+        resizeInput();
+        broadcastTyping(false);
+        if (inputRef.current) inputRef.current.focus();
+        router.refresh();
+        requestAnimationFrame(() => scrollToBottom("smooth"));
+        return;
+      }
+
+      // OPTIMISTIC (aparece instantáneo)
+      const tempId = (globalThis.crypto as any)?.randomUUID?.() ?? `tmp_${Date.now()}`;
+      optimisticId = tempId;
+
+      const nowIso = new Date().toISOString();
+      const optimistic: Msg = {
+        id: tempId,
+        group_id: groupId,
+        user_id: myId,
+        message: text,
+        created_at: nowIso,
+        edited_at: null,
+        deleted_at: null,
+        reply_to: replyId,
+        attachment_path: null,
+        attachment_mime: null,
+        attachment_name: null,
+        attachment_size: null,
+        profiles: { full_name: myName },
+      };
+
+      setMessages((prev) => {
+        const next = [...prev, optimistic].sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
+        return next;
+      });
+
+      // limpiar UI ya (aunque falle realtime)
+      hardResetComposer();
+      resizeInput();
+      broadcastTyping(false);
+      requestAnimationFrame(() => scrollToBottom("smooth"));
+
+      // Upload si hay archivo
+      let attachment: any = null;
+      if (file) {
+        setUploading(true);
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const storagePath = `${groupId}/${Date.now()}_${safeName}`;
+
+        const { error: upErr } = await supabase.storage
+          .from("group-chat")
+          .upload(storagePath, file, { contentType: file.type, upsert: false });
+
+        if (upErr) throw upErr;
+
+        attachment = {
+          attachment_path: storagePath,
+          attachment_mime: file.type || null,
+          attachment_name: file.name || null,
+          attachment_size: file.size || null,
+        };
+      }
+
+      const payload: any = {
+        group_id: groupId,
+        user_id: myId,
+        message: text,
+        reply_to: replyId,
+        ...attachment,
+      };
+
+      const { error } = await supabase.from("group_messages").insert(payload);
+      if (error) throw error;
+
+      // No hacemos select() aquí para evitar fallos por permisos/RLS.
+      // El optimistic ya está en pantalla y router.refresh() sincroniza.
+
+      router.refresh();
+      requestAnimationFrame(() => scrollToBottom("smooth"));
+    } catch (e: any) {
+      if (optimisticId) setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+      setError(e?.message ? String(e.message) : "No se pudo enviar");
+    } finally {
+      setUploading(false);
+      setSending(false);
+    }
+  }, [myId, draft, pendingFile, replyTo, editing, supabase, groupId, myName, broadcastTyping, router, scrollToBottom, resizeInput]);
+// ---------- Actions
+  const pinMessage = React.useCallback(
+    async (m: Msg) => {
+      try {
+        const { error } = await supabase.from("group_message_pins").insert({ group_id: groupId, message_id: m.id, pinned_by: myId });
+        if (error) throw error;
+        setPinned(m);
+      } catch (e: any) {
+        setError(e?.message ? String(e.message) : "No se pudo fijar");
+      }
+    },
+    [supabase, groupId, myId]
+  );
+
+  const unpin = React.useCallback(async () => {
+    try {
+      const { error } = await supabase.from("group_message_pins").delete().eq("group_id", groupId).eq("message_id", pinned?.id ?? "");
+      if (error) throw error;
+      setPinned(null);
+    } catch (e: any) {
+      setError(e?.message ? String(e.message) : "No se pudo desfijar");
+    }
+  }, [supabase, groupId, pinned?.id]);
+
+  const delMessage = React.useCallback(
+    async (m: Msg) => {
+      try {
+        // Soft delete
+        const { error } = await supabase
+          .from("group_messages")
+          .update({ deleted_at: new Date().toISOString(), message: "" })
+          .eq("id", m.id)
+          .or(`user_id.eq.${myId}${isAdmin ? ",user_id.neq." + myId : ""}`);
+        if (error) throw error;
+      } catch (e: any) {
+        setError(e?.message ? String(e.message) : "No se pudo borrar");
+      }
+    },
+    [supabase, myId, isAdmin]
+  );
+
+  // ---------- Render
+  const typingLabel = React.useMemo(() => {
+    const names = Object.values(typingUsers)
+      .map((v) => v.name)
+      .filter(Boolean);
+    if (!names.length) return "";
+    if (names.length === 1) return `${names[0]} est� escribiendo...`;
+    return `Varias personas est�n escribiendo...`;
+  }, [typingUsers]);
+
+  return (
+    <div className="mt-4">
+      {error && (
+        <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          {error}
+        </div>
+      )}
+
+      <div className="relative flex h-[calc(100dvh-220px)] min-h-[70vh] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        {/* Top bar */}
+        <div className="flex items-center gap-3 border-b border-slate-200 bg-white px-3 py-2">
+          <Link
+            href={`/app/groups/${groupId}`}
+            className="rounded-full p-2 hover:bg-slate-100"
+            aria-label="Volver"
+          >
+            <ChevronLeft className="h-5 w-5 text-slate-600" />
+          </Link>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-semibold">
+              {groupEmoji ? `${groupEmoji} ` : ""}
+              {groupName || "Chat"}
+            </div>
+            <div className="truncate text-xs text-slate-500">{typingLabel || ""}</div>
+          </div>
+          <Link
+            href={`/app/groups/${groupId}/settings`}
+            className="rounded-full p-2 hover:bg-slate-100"
+            aria-label="Ajustes"
+          >
+            <Settings className="h-5 w-5 text-slate-600" />
+          </Link>
+        </div>
+
+        {/* Pinned */}
+        {pinned && (
+          <div className="border-b border-slate-200 bg-slate-50 px-3 py-2">
+            <div className="flex items-start gap-2">
+              <Pin className="mt-0.5 h-4 w-4 text-slate-500" />
+              <div className="min-w-0 flex-1">
+                <div className="text-[11px] font-semibold text-slate-600">Mensaje fijado</div>
+                <button
+                  type="button"
+                  className="mt-0.5 w-full truncate text-left text-xs text-slate-700 hover:underline"
+                  onClick={() => {
+                    const el = document.getElementById(`m_${pinned.id}`);
+                    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }}
+                >
+                  {pinned.deleted_at ? "(mensaje eliminado)" : pinned.message || pinned.attachment_name || "(adjunto)"}
+                </button>
+              </div>
+              {isAdmin && (
+                <button
+                  type="button"
+                  className="rounded-full p-2 hover:bg-slate-100"
+                  aria-label="Desfijar"
+                  onClick={unpin}
+                >
+                  <PinOff className="h-4 w-4 text-slate-600" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Messages */}
+        <div
+          ref={listRef}
+          onScroll={onScroll}
+          className={cls(
+            "flex-1 overflow-y-auto px-3 py-3",
+            "bg-[radial-gradient(circle_at_20%_20%,rgba(2,132,199,0.06),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(16,185,129,0.06),transparent_30%),radial-gradient(circle_at_40%_90%,rgba(99,102,241,0.06),transparent_35%)]"
+          )}
+        >
+          <div className="flex items-center justify-center">
+            <button
+              type="button"
+              onClick={loadOlder}
+              disabled={loadingMore}
+              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm hover:bg-slate-50 disabled:opacity-60"
+            >
+              {loadingMore ? "Cargando..." : "Cargar anteriores"}
+            </button>
+          </div>
+
+          {sorted.length === 0 && (
+            <div className="mt-10 text-center text-sm text-slate-500">A�n no hay mensajes. �Di hola! 👋</div>
+          )}
+
+          <div className="mt-3 space-y-2">
+            {sorted.map((m, idx) => {
+              const mine = m.user_id === myId;
+              const prev = sorted[idx - 1];
+              const newDay = !prev || dayLabel(prev.created_at) !== dayLabel(m.created_at);
+              const name = mine ? "T�" : m.profiles?.full_name || "Miembro";
+              const isDeleted = !!m.deleted_at;
+              const replied = m.reply_to ? sorted.find((x) => x.id === m.reply_to) : null;
+
+              return (
+                <React.Fragment key={m.id}>
+                  {newDay && (
+                    <div className="my-3 flex items-center justify-center">
+                      <div className="rounded-full bg-white/70 px-3 py-1 text-[11px] font-semibold text-slate-600 shadow-sm">
+                        {dayLabel(m.created_at)}
+                      </div>
+                    </div>
+                  )}
+
+                  <div id={`m_${m.id}`} className={cls("flex", mine ? "justify-end" : "justify-start")}>
+                    <div className={cls("group relative max-w-[85%]", mine ? "items-end" : "items-start")}>
+                      {/* bubble */}
+                      <div
+                        className={cls(
+                          "rounded-2xl px-3 py-2 shadow-sm",
+                          mine ? "bg-emerald-600 text-white" : "bg-white text-slate-900",
+                          isDeleted && "opacity-75"
+                        )}
+                      >
+                        {!mine && (
+                          <div className="mb-1 text-[11px] font-semibold text-slate-600">{name}</div>
+                        )}
+
+                        {replied && !isDeleted && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const el = document.getElementById(`m_${replied.id}`);
+                              el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                            }}
+                            className={cls(
+                              "mb-2 block w-full rounded-xl border px-2 py-1 text-left text-[11px]",
+                              mine ? "border-white/25 bg-white/10 text-white/90" : "border-slate-200 bg-slate-50 text-slate-600"
+                            )}
+                          >
+                            <div className="truncate font-semibold">
+                              {replied.user_id === myId ? "T�" : replied.profiles?.full_name || "Miembro"}
+                            </div>
+                            <div className="truncate">{replied.deleted_at ? "(mensaje eliminado)" : replied.message || replied.attachment_name || "(adjunto)"}</div>
+                          </button>
+                        )}
+
+                        {m.attachment_path && !isDeleted && (
+                          <AttachmentView supabase={supabase} path={m.attachment_path} mime={m.attachment_mime} name={m.attachment_name} mine={mine} />
+                        )}
+
+                        <div className={cls("whitespace-pre-wrap break-words text-sm", mine ? "text-white" : "text-slate-900")}>
+                          {isDeleted ? <i>(mensaje eliminado)</i> : m.message || (m.attachment_path ? "" : "")}
+                        </div>
+
+                        <div className={cls("mt-1 flex items-center justify-end gap-1 text-[10px]", mine ? "text-white/80" : "text-slate-400")}>
+                          {m.edited_at && !isDeleted && <span>editado</span>}
+                          <span>{hhmm(m.created_at)}</span>
+                          {mine && (
+                            <span className="ml-1 inline-flex items-center">
+                              {otherHasRead(m.created_at) ? (
+                                <CheckCheck className="h-3.5 w-3.5" />
+                              ) : (
+                                <Check className="h-3.5 w-3.5" />
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* actions */}
+                      <div className={cls("absolute -top-2", mine ? "-left-2" : "-right-2")}>
+                        <button
+                          type="button"
+                          onClick={() => setMenuFor((v) => (v === m.id ? null : m.id))}
+                          className={cls(
+                            "opacity-0 transition group-hover:opacity-100",
+                            "rounded-full border border-slate-200 bg-white p-1.5 shadow-sm hover:bg-slate-50"
+                          )}
+                          aria-label="Acciones"
+                        >
+                          <span className="block h-1.5 w-1.5 rounded-full bg-slate-500" />
+                        </button>
+                      </div>
+
+                      {menuFor === m.id && (
+                        <div
+                          className={cls(
+                            "absolute z-20 mt-2 w-44 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg",
+                            mine ? "right-0" : "left-0"
+                          )}
+                        >
+                          <MenuBtn
+                            icon={<Reply className="h-4 w-4" />}
+                            label="Responder"
+                            onClick={() => {
+                              setReplyTo(m);
+                              setMenuFor(null);
+                            }}
+                          />
+                          <MenuBtn
+                            icon={<Copy className="h-4 w-4" />}
+                            label="Copiar"
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(m.message || "");
+                              } catch {}
+                              setMenuFor(null);
+                            }}
+                          />
+                          {isAdmin && (
+                            <MenuBtn
+                              icon={<Pin className="h-4 w-4" />}
+                              label={pinned?.id === m.id ? "Ya fijado" : "Fijar"}
+                              disabled={pinned?.id === m.id}
+                              onClick={() => {
+                                pinMessage(m);
+                                setMenuFor(null);
+                              }}
+                            />
+                          )}
+                          {mine && !isDeleted && (
+                            <MenuBtn
+                              icon={<Pencil className="h-4 w-4" />}
+                              label="Editar"
+                              onClick={() => {
+                                setEditing(m);
+                                setDraft(m.message || "");
+                                setReplyTo(null);
+                                setMenuFor(null);
+                              }}
+                            />
+                          )}
+                          {(mine || isAdmin) && (
+                            <MenuBtn
+                              icon={<Trash2 className="h-4 w-4" />}
+                              label="Borrar"
+                              danger
+                              onClick={() => {
+                                delMessage(m);
+                                setMenuFor(null);
+                              }}
+                            />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Composer */}
+        <div className="border-t border-slate-200 bg-white p-2">
+          {(replyTo || editing || pendingFile) && (
+            <div className="mb-2 rounded-2xl bg-slate-50 p-2">
+              <div className="flex items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  {editing ? (
+                    <div className="text-xs font-semibold text-slate-700">Editando mensaje</div>
+                  ) : replyTo ? (
+                    <div className="text-xs font-semibold text-slate-700">Respondiendo a {replyTo.user_id === myId ? "ti" : replyTo.profiles?.full_name || "miembro"}</div>
+                  ) : (
+                    <div className="text-xs font-semibold text-slate-700">Adjunto</div>
+                  )}
+                  <div className="mt-0.5 truncate text-xs text-slate-600">
+                    {pendingFile ? pendingFile.name : editing ? editing.message : replyTo?.message || replyTo?.attachment_name || ""}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="rounded-full p-2 hover:bg-slate-100"
+                  aria-label="Cancelar"
+                  onClick={() => {
+                    setReplyTo(null);
+                    setEditing(null);
+                    setPendingFile(null);
+                  }}
+                >
+                  <X className="h-4 w-4 text-slate-600" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-end gap-2">
+            <label className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full hover:bg-slate-100">
+              <Paperclip className="h-5 w-5 text-slate-600" />
+              <input
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null;
+                  setPendingFile(f);
+                }}
+              />
+            </label>
+
+            <textarea
+               ref={inputRef} value={draft}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                broadcastTyping(true);
+                resizeInput();
+                if (atBottomRef.current) requestAnimationFrame(() => scrollToBottom("auto"));}}
+              onBlur={() => broadcastTyping(false)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  doSend();
+                }
+              }}
+              rows={1}
+              placeholder="Escribe un mensaje�"
+              className="max-h-28 flex-1 resize-none rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400"
+            />
+
+            <button
+              type="button"
+              onClick={doSend}
+              disabled={sending || uploading}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
+              aria-label="Enviar"
+            >
+              {sending || uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+            </button>
+          </div>
+
+          <div className="mt-1 px-1 text-[11px] text-slate-400">
+            Enter para enviar � Shift+Enter para salto de l�nea
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MenuBtn({
+  icon,
+  label,
+  onClick,
+  disabled,
+  danger,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cls(
+        "flex w-full items-center gap-2 px-3 py-2 text-left text-sm",
+        "hover:bg-slate-50 disabled:opacity-50",
+        danger ? "text-rose-600" : "text-slate-700"
+      )}
+    >
+      <span className={cls("h-4 w-4", danger ? "text-rose-600" : "text-slate-600")}>{icon}</span>
+      <span className="text-sm">{label}</span>
+    </button>
+  );
+}
+
+function AttachmentView({
+  supabase,
+  path,
+  mime,
+  name,
+  mine,
+}: {
+  supabase: ReturnType<typeof createClient>;
+  path: string;
+  mime?: string | null;
+  name?: string | null;
+  mine: boolean;
+}) {
+  const [url, setUrl] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        // Bucket privado: usamos signed url
+        const { data, error } = await supabase.storage.from("group-chat").createSignedUrl(path, 60 * 60);
+        if (error) throw error;
+        if (!cancelled) setUrl(data.signedUrl);
+      } catch {
+        // si no existe bucket o política, intentamos publicUrl (por si el bucket es público)
+        try {
+          const { data } = supabase.storage.from("group-chat").getPublicUrl(path);
+          if (!cancelled) setUrl(data.publicUrl);
+        } catch {
+          if (!cancelled) setUrl(null);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase, path]);
+
+  const isImage = (mime || "").startsWith("image/");
+
+  if (!url) {
+    return (
+      <div className={cls("mb-2 rounded-xl p-2 text-xs", mine ? "bg-white/10" : "bg-slate-50")}>Adjunto�</div>
+    );
+  }
+
+  if (isImage) {
+    return (
+      <div className={cls("mb-2 overflow-hidden rounded-xl", mine ? "bg-white/10" : "bg-slate-50")}>
+        <img src={url} alt={name || "adjunto"} className="max-h-56 w-full object-cover" />
+      </div>
+    );
+  }
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      className={cls(
+        "mb-2 block rounded-xl border px-2 py-2 text-xs",
+        mine ? "border-white/25 bg-white/10 text-white/90" : "border-slate-200 bg-slate-50 text-slate-700"
+      )}
+    >
+      {name || "Archivo"}
+    </a>
+  );
+}
