@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
   // destino final
   const dest = type === "recovery" ? "/reset-password" : "/app/groups";
-  let response = NextResponse.redirect(new URL(dest, url));
+  const response = NextResponse.redirect(new URL(dest, url));
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

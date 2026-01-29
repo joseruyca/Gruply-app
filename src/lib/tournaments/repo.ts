@@ -52,11 +52,6 @@ function safeStr(x: any, max = 120) {
   return String(x ?? "").replace(/\s+/g, " ").trim().slice(0, max);
 }
 
-function safeInt(x: any, fallback: number) {
-  const n = Number(String(x ?? "").trim());
-  return Number.isFinite(n) ? Math.trunc(n) : fallback;
-}
-
 export async function listTournaments(groupId: string): Promise<Tournament[]> {
   const supabase = await createClient();
   const baseSelect =
@@ -68,10 +63,18 @@ export async function listTournaments(groupId: string): Promise<Tournament[]> {
     .order("created_at", { ascending: false });
 
   // Compat: si faltan columnas en schema, reintenta select sin ellas
-  if (res.error && (isMissingColumnError(res.error.message, "tournaments.tiebreak_order") || isMissingColumnError(res.error.message, "tournaments.schedule_mode"))) {
+  if (
+    res.error &&
+    (isMissingColumnError(res.error.message, "tournaments.tiebreak_order") ||
+      isMissingColumnError(res.error.message, "tournaments.schedule_mode"))
+  ) {
     const fallbackSelect =
       "id,group_id,name,kind,status,scoring_mode,points_win,points_draw,points_loss,created_by,created_at";
-    res = await supabase.from("tournaments").select(fallbackSelect).eq("group_id", groupId).order("created_at", { ascending: false });
+    res = await supabase
+      .from("tournaments")
+      .select(fallbackSelect)
+      .eq("group_id", groupId)
+      .order("created_at", { ascending: false });
   }
 
   if (res.error) throw new Error(res.error.message);
@@ -84,7 +87,11 @@ export async function getTournament(tournamentId: string): Promise<Tournament> {
     "id,group_id,name,kind,status,scoring_mode,schedule_mode,points_win,points_draw,points_loss,created_by,created_at,allow_draws,tiebreak_order";
   let res: any = await supabase.from("tournaments").select(baseSelect).eq("id", tournamentId).single();
 
-  if (res.error && (isMissingColumnError(res.error.message, "tournaments.tiebreak_order") || isMissingColumnError(res.error.message, "tournaments.schedule_mode"))) {
+  if (
+    res.error &&
+    (isMissingColumnError(res.error.message, "tournaments.tiebreak_order") ||
+      isMissingColumnError(res.error.message, "tournaments.schedule_mode"))
+  ) {
     const fallbackSelect =
       "id,group_id,name,kind,status,scoring_mode,points_win,points_draw,points_loss,created_by,created_at";
     res = await supabase.from("tournaments").select(fallbackSelect).eq("id", tournamentId).single();
@@ -121,7 +128,7 @@ export async function createTournament(input: {
     kind: input.kind,
     status: "draft",
     scoring_mode: input.scoringMode,
-    schedule_mode: (input.scheduleMode === "rr2" || input.scheduleMode === "manual" ? input.scheduleMode : "rr1"),
+    schedule_mode: input.scheduleMode === "rr2" || input.scheduleMode === "manual" ? input.scheduleMode : "rr1",
     points_win: input.pointsWin,
     points_draw: input.pointsDraw,
     points_loss: input.pointsLoss,
@@ -131,7 +138,8 @@ export async function createTournament(input: {
   const payloadWithRules: any = {
     ...basePayload,
     allow_draws: typeof input.allowDraws === "boolean" ? input.allowDraws : Number(input.pointsDraw ?? 0) > 0,
-    tiebreak_order: Array.isArray(input.tiebreakOrder) && input.tiebreakOrder.length ? input.tiebreakOrder : DEFAULT_TIEBREAK_ORDER,
+    tiebreak_order:
+      Array.isArray(input.tiebreakOrder) && input.tiebreakOrder.length ? input.tiebreakOrder : DEFAULT_TIEBREAK_ORDER,
   };
 
   // intentos por si el CHECK de scoring_mode es estricto
@@ -146,12 +154,13 @@ export async function createTournament(input: {
     "wl",
     "win_only",
     "sets",
-  ].map((x) => String(x || "").trim()).filter(Boolean);
+  ]
+    .map((x) => String(x || "").trim())
+    .filter(Boolean);
 
   const uniqCandidates = Array.from(new Set(candidates));
 
-  const tryInsert = async (payload: any) =>
-    await supabase.from("tournaments").insert(payload).select("id").single();
+  const tryInsert = async (payload: any) => await supabase.from("tournaments").insert(payload).select("id").single();
 
   let lastErr: any = null;
 
@@ -247,7 +256,11 @@ export async function joinTournament(arg: string | { tournamentId: string }) {
   } as any);
 
   // si ya existe, no fallamos duro
-  if (error && !String(error.message).toLowerCase().includes("duplicate") && !String(error.message).toLowerCase().includes("unique")) {
+  if (
+    error &&
+    !String(error.message).toLowerCase().includes("duplicate") &&
+    !String(error.message).toLowerCase().includes("unique")
+  ) {
     throw new Error(error.message);
   }
 }
@@ -261,11 +274,7 @@ export async function leaveTournament(arg: string | { tournamentId: string }) {
   const uid = me.user?.id;
   if (!uid) throw new Error("not_authenticated");
 
-  const { error } = await supabase
-    .from("tournament_participants")
-    .delete()
-    .eq("tournament_id", tournamentId)
-    .eq("user_id", uid);
+  const { error } = await supabase.from("tournament_participants").delete().eq("tournament_id", tournamentId).eq("user_id", uid);
 
   if (error) throw new Error(error.message);
 }
@@ -282,6 +291,7 @@ export async function listMatches(tournamentId: string): Promise<TournamentMatch
   if (error) throw new Error(error.message);
   return (data ?? []) as any;
 }
+
 /** Genera emparejamientos simples Round Robin (rr1 / rr2) */
 export async function generateTournamentMatches(arg: string | { tournamentId: string }) {
   const tournamentId = typeof arg === "string" ? arg : arg.tournamentId;
@@ -490,7 +500,11 @@ export async function updateTournamentRules(input: { tournamentId: string; allow
   if (Array.isArray(input.tiebreakOrder) && input.tiebreakOrder.length) payload.tiebreak_order = input.tiebreakOrder;
   let res: any = await supabase.from("tournaments").update(payload).eq("id", input.tournamentId);
 
-  if (res.error && (isMissingColumnError(res.error.message, "tournaments.tiebreak_order") || isMissingColumnError(res.error.message, "tournaments.allow_draws"))) {
+  if (
+    res.error &&
+    (isMissingColumnError(res.error.message, "tournaments.tiebreak_order") ||
+      isMissingColumnError(res.error.message, "tournaments.allow_draws"))
+  ) {
     const retryPayload = { ...payload };
     delete (retryPayload as any).tiebreak_order;
     delete (retryPayload as any).allow_draws;
@@ -592,8 +606,8 @@ export function buildStandings(t: Tournament, participants: string[], matches: T
     tied.sort((a: any, b: any) => {
       const ha = h2h[a.id] || { pts: 0, pf: 0, pc: 0 };
       const hb = h2h[b.id] || { pts: 0, pf: 0, pc: 0 };
-      const da = (ha.pf - ha.pc);
-      const db = (hb.pf - hb.pc);
+      const da = ha.pf - ha.pc;
+      const db = hb.pf - hb.pc;
       return (hb.pts - ha.pts) || (db - da) || (hb.pf - ha.pf) || String(a.id).localeCompare(String(b.id));
     });
   }
@@ -610,9 +624,7 @@ export function buildFormMap(
   const map: Record<string, string[]> = {};
   for (const p of participants) map[p] = [];
 
-  const played = (matches ?? []).filter(
-    (m) => m.status === "played" && m.score_a != null && m.score_b != null
-  );
+  const played = (matches ?? []).filter((m) => m.status === "played" && m.score_a != null && m.score_b != null);
 
   for (let i = played.length - 1; i >= 0; i--) {
     const m = played[i];
@@ -634,5 +646,3 @@ export function buildFormMap(
   for (const k of Object.keys(map)) map[k] = map[k].reverse();
   return map;
 }
-
-

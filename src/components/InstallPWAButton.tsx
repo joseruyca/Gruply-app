@@ -59,23 +59,15 @@ export default function InstallPWAButton({
     };
   }, []);
 
-  const canInstall = !!deferred;
-
   const base =
     "inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-extrabold transition shadow-sm";
-  const primary = "bg-emerald-600 text-white hover:bg-emerald-700";
-  const ghost = "bg-white/10 text-white hover:bg-white/15 border border-white/20";
+
+  // Estilos para fondo claro (los que estabas usando)
   const primaryLight = "bg-emerald-600 text-white hover:bg-emerald-700";
   const ghostLight = "bg-white text-slate-900 hover:bg-slate-50 border border-slate-200";
 
-  // Elegimos estilos según el contexto (si lo usas sobre fondo oscuro o claro)
   const isGhost = variant === "ghost";
-  const btnClass =
-    base +
-    " " +
-    (isGhost ? ghostLight : primaryLight) +
-    " " +
-    className;
+  const btnClass = `${base} ${isGhost ? ghostLight : primaryLight} ${className}`;
 
   async function onClick() {
     // Ya instalada
@@ -101,7 +93,9 @@ export default function InstallPWAButton({
     }
 
     // No disponible: guía breve
-    alert("Tu navegador no ofrece instalación ahora. Prueba Chrome/Edge y asegúrate de tener PWA (manifest + service worker) en HTTPS o localhost.");
+    alert(
+      "Tu navegador no ofrece instalación ahora. Prueba Chrome/Edge y asegúrate de tener PWA (manifest + service worker) en HTTPS o localhost."
+    );
   }
 
   if (!ready) return null;
@@ -147,21 +141,28 @@ export default function InstallPWAButton({
 
             <ol className="mt-3 space-y-2 text-sm text-slate-800">
               <li className="flex gap-2">
-                <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white text-xs font-extrabold">1</span>
+                <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white text-xs font-extrabold">
+                  1
+                </span>
                 <span>
                   Abre GRUPLY en <b>Safari</b>.
                 </span>
               </li>
               <li className="flex gap-2">
-                <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white text-xs font-extrabold">2</span>
+                <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white text-xs font-extrabold">
+                  2
+                </span>
                 <span>
                   Pulsa <b>Compartir</b> <Share2 className="inline h-4 w-4" />.
                 </span>
               </li>
               <li className="flex gap-2">
-                <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white text-xs font-extrabold">3</span>
+                <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white text-xs font-extrabold">
+                  3
+                </span>
                 <span>
-                  Elige <b>Añadir a pantalla de inicio</b> <PlusSquare className="inline h-4 w-4" />.
+                  Elige <b>Añadir a pantalla de inicio</b>{" "}
+                  <PlusSquare className="inline h-4 w-4" />.
                 </span>
               </li>
             </ol>
