@@ -224,7 +224,8 @@ export default function CalendarClient({
   return (
     <main className="mx-auto w-full max-w-xl md:max-w-2xl lg:max-w-5xl px-4 sm:px-6 lg:px-8 pb-28 pt-6">
       {/* Header */}
-      <section className="rounded-3xl border border-slate-200 bg-gradient-to-r from-indigo-600 via-fuchsia-600 to-rose-600 p-[1px] shadow-sm">
+     <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+
         <div className="rounded-3xl bg-slate-950/90 p-4 text-white">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">

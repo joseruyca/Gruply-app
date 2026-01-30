@@ -22,7 +22,7 @@ export default function CreateGroupModal() {
   const close = React.useCallback(() => setOpen(false), []);
   const openModal = React.useCallback(() => setOpen(true), []);
 
-  // Bloquea el scroll del body
+  // Bloquea scroll del body cuando el modal está abierto
   React.useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -50,12 +50,7 @@ export default function CreateGroupModal() {
       </button>
 
       {!open ? null : (
-        <div
-          className="fixed inset-0 z-50 grid place-items-end md:place-items-center"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Crear grupo"
-        >
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Crear grupo">
           {/* Overlay */}
           <button
             type="button"
@@ -64,129 +59,127 @@ export default function CreateGroupModal() {
             className="absolute inset-0 bg-black/55 backdrop-blur-[6px] animate-g-fadeIn"
           />
 
-          {/* Panel */}
-          <div
-            ref={panelRef}
-            tabIndex={-1}
-            className={[
-              "relative w-full md:max-w-lg",
-              "animate-g-sheetUp",
-              "rounded-t-[28px] md:rounded-[28px]",
-              "border border-white/15 bg-gradient-to-b from-white to-slate-50",
-              "shadow-[0_24px_70px_rgba(0,0,0,0.35)]",
-              "max-h-[94dvh] overflow-hidden",
-              "flex flex-col",
-            ].join(" ")}
-          >
-            {/* Top bar */}
-            <div className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/85 backdrop-blur">
-              <div className="flex items-center justify-between px-4 py-3 md:px-5">
-                <div className="flex items-center gap-2">
-                  <div className="grid h-9 w-9 place-items-center rounded-2xl bg-emerald-50 text-emerald-700">
-                    <Sparkles className="h-5 w-5" />
-                  </div>
-                  <div className="leading-tight">
-                    <div className="text-base font-extrabold text-slate-900">
-                      Crear grupo
+          {/* Panel wrapper */}
+          <div className="absolute inset-x-0 bottom-0 grid place-items-end md:inset-0 md:place-items-center">
+            {/* Panel */}
+            <div
+              ref={panelRef}
+              tabIndex={-1}
+              className={[
+                "relative w-full md:max-w-lg",
+                "animate-g-sheetUp",
+                "rounded-t-[28px] md:rounded-[28px]",
+                "border border-white/15 bg-gradient-to-b from-white to-slate-50",
+                "shadow-[0_24px_70px_rgba(0,0,0,0.35)]",
+                "max-h-[92dvh]",
+                "flex flex-col",
+                "overflow-hidden",
+              ].join(" ")}
+            >
+              {/* Top bar */}
+              <div className="sticky top-0 z-10 border-b border-slate-200/70 bg-white/85 backdrop-blur">
+                <div className="flex items-center justify-between px-4 py-3 md:px-5">
+                  <div className="flex items-center gap-2">
+                    <div className="grid h-9 w-9 place-items-center rounded-2xl bg-emerald-50 text-emerald-700">
+                      <Sparkles className="h-5 w-5" />
                     </div>
-                    <div className="text-xs text-slate-500">Listo en 20 segundos</div>
+                    <div className="leading-tight">
+                      <div className="text-base font-extrabold text-slate-900">Crear grupo</div>
+                      <div className="text-xs text-slate-500">Listo en 20 segundos</div>
+                    </div>
                   </div>
-                </div>
 
-                <button
-                  type="button"
-                  onClick={close}
-                  className="grid h-10 w-10 place-items-center rounded-2xl hover:bg-slate-100"
-                  aria-label="Cerrar"
-                >
-                  <X className="h-5 w-5" />
-                </button>
+                  <button
+                    type="button"
+                    onClick={close}
+                    className="grid h-10 w-10 place-items-center rounded-2xl hover:bg-slate-100"
+                    aria-label="Cerrar"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* SCROLL AREA */}
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-[140px] md:px-5">
-              <form id="create-group-form" action={createGroupAction} className="space-y-4">
-                {/* Nombre */}
-                <div className="rounded-3xl border border-slate-200 bg-white p-4">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-slate-500" />
-                    <div className="text-sm font-extrabold text-slate-900">
-                      Nombre del grupo
+              {/* Content: flex-1 para que el footer SIEMPRE se vea */}
+              <div className="flex-1 overflow-y-auto overscroll-contain touch-pan-y px-4 pt-4 md:px-5">
+                <form id="create-group-form" action={createGroupAction} className="space-y-4 pb-24">
+                  {/* Nombre */}
+                  <div className="rounded-3xl border border-slate-200 bg-white p-4">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-slate-500" />
+                      <div className="text-sm font-extrabold text-slate-900">Nombre del grupo</div>
+                    </div>
+                    <input
+                      name="name"
+                      placeholder="Ej: Mus del jueves"
+                      className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-300"
+                      autoFocus
+                      required
+                    />
+                    <div className="mt-2 text-xs text-slate-500">
+                      Un nombre claro ayuda a que la gente lo encuentre y se una rápido.
                     </div>
                   </div>
-                  <input
-                    name="name"
-                    placeholder="Ej: Mus del jueves"
-                    className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-300"
-                    autoFocus
-                    required
-                  />
-                  <div className="mt-2 text-xs text-slate-500">
-                    Un nombre claro ayuda a que la gente lo encuentre y se una rápido.
-                  </div>
-                </div>
 
-                {/* Actividad + Emoji */}
-                <div className="rounded-3xl border border-slate-200 bg-white p-4">
-                  <div className="min-w-0">
-                    <div className="text-sm font-extrabold text-slate-900">Actividad</div>
-                    <div className="mt-1 text-xs text-slate-500">Elige un tipo y un icono.</div>
-                  </div>
+                  {/* Actividad + Emoji */}
+                  <div className="rounded-3xl border border-slate-200 bg-white p-4">
+                    <div className="min-w-0">
+                      <div className="text-sm font-extrabold text-slate-900">Actividad</div>
+                      <div className="mt-1 text-xs text-slate-500">Elige un tipo y un icono.</div>
+                    </div>
 
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                    <select
-                      name="activity"
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-300"
-                      defaultValue="otro"
-                    >
-                      {ACTIVITY.map((a) => (
-                        <option key={a.value} value={a.value}>
-                          {a.label}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                      <select
+                        name="activity"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-300"
+                        defaultValue="otro"
+                      >
+                        {ACTIVITY.map((a) => (
+                          <option key={a.value} value={a.value}>
+                            {a.label}
+                          </option>
+                        ))}
+                      </select>
 
-                    <select
-                      name="emoji"
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-300"
-                      defaultValue="👥"
-                    >
-                      <option value="👥">👥 Grupo</option>
-                      {ACTIVITY.map((a) => (
-                        <option key={a.value} value={a.emoji}>
-                          {a.emoji} {a.label}
-                        </option>
-                      ))}
-                      <option value="✨">✨ Extra</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Descripción */}
-                <div className="rounded-3xl border border-slate-200 bg-white p-4">
-                  <div className="flex items-center gap-2">
-                    <Info className="h-4 w-4 text-slate-500" />
-                    <div className="text-sm font-extrabold text-slate-900">Descripción</div>
-                    <span className="text-xs font-semibold text-slate-400">(opcional)</span>
+                      <select
+                        name="emoji"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-300"
+                        defaultValue="👥"
+                      >
+                        <option value="👥">👥 Grupo</option>
+                        {ACTIVITY.map((a) => (
+                          <option key={a.value} value={a.emoji}>
+                            {a.emoji} {a.label}
+                          </option>
+                        ))}
+                        <option value="✨">✨ Extra</option>
+                      </select>
+                    </div>
                   </div>
 
-                  <textarea
-                    name="description"
-                    placeholder="Ej: Quedadas semanales, torneo mensual, reglas del grupo…"
-                    className="mt-3 min-h-[96px] w-full resize-none rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-300"
-                  />
-                  <div className="mt-2 text-xs text-slate-500">Máximo 140 caracteres.</div>
-                </div>
-              </form>
-            </div>
+                  {/* Descripción */}
+                  <div className="rounded-3xl border border-slate-200 bg-white p-4">
+                    <div className="flex items-center gap-2">
+                      <Info className="h-4 w-4 text-slate-500" />
+                      <div className="text-sm font-extrabold text-slate-900">Descripción</div>
+                      <span className="text-xs font-semibold text-slate-400">(opcional)</span>
+                    </div>
 
-            {/* FOOTER ABSOLUTO (SIEMPRE VISIBLE EN MÓVIL) */}
-            <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-30 border-t border-slate-200/70 bg-white/92 backdrop-blur">
-              <div className="pointer-events-auto px-4 pt-3 md:px-5">
+                    <textarea
+                      name="description"
+                      placeholder="Ej: Quedadas semanales, torneo mensual, reglas del grupo…"
+                      className="mt-3 min-h-[96px] w-full resize-none rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-300"
+                    />
+                    <div className="mt-2 text-xs text-slate-500">Máximo 140 caracteres.</div>
+                  </div>
+                </form>
+              </div>
+
+              {/* Footer fijo dentro del panel */}
+              <div className="border-t border-slate-200/70 bg-white/92 backdrop-blur px-4 pt-3 md:px-5">
                 <button
-                  type="submit"
                   form="create-group-form"
+                  type="submit"
                   className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-extrabold text-white shadow hover:bg-emerald-700 active:translate-y-px"
                 >
                   Crear grupo <ArrowRight className="h-4 w-4" />
