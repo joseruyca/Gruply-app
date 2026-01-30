@@ -22,7 +22,7 @@ export default function CreateGroupModal() {
   const close = React.useCallback(() => setOpen(false), []);
   const openModal = React.useCallback(() => setOpen(true), []);
 
-  // Bloquea el scroll de la página cuando el modal está abierto.
+  // Bloquea el scroll del body
   React.useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -74,12 +74,12 @@ export default function CreateGroupModal() {
               "rounded-t-[28px] md:rounded-[28px]",
               "border border-white/15 bg-gradient-to-b from-white to-slate-50",
               "shadow-[0_24px_70px_rgba(0,0,0,0.35)]",
-              "max-h-[92dvh] overflow-hidden",
+              "max-h-[94dvh] overflow-hidden",
               "flex flex-col",
             ].join(" ")}
           >
             {/* Top bar */}
-            <div className="sticky top-0 z-10 border-b border-slate-200/70 bg-white/85 backdrop-blur">
+            <div className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/85 backdrop-blur">
               <div className="flex items-center justify-between px-4 py-3 md:px-5">
                 <div className="flex items-center gap-2">
                   <div className="grid h-9 w-9 place-items-center rounded-2xl bg-emerald-50 text-emerald-700">
@@ -104,8 +104,8 @@ export default function CreateGroupModal() {
               </div>
             </div>
 
-            {/* Content (SCROLL) */}
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-28 md:px-5">
+            {/* SCROLL AREA */}
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-[140px] md:px-5">
               <form id="create-group-form" action={createGroupAction} className="space-y-4">
                 {/* Nombre */}
                 <div className="rounded-3xl border border-slate-200 bg-white p-4">
@@ -178,20 +178,21 @@ export default function CreateGroupModal() {
                   />
                   <div className="mt-2 text-xs text-slate-500">Máximo 140 caracteres.</div>
                 </div>
-
-                {/* (No CTA aquí; el CTA va en footer sticky) */}
               </form>
             </div>
 
-            {/* Footer (STICKY CTA) */}
-            <div className="sticky bottom-0 z-10 border-t border-slate-200/70 bg-white/90 backdrop-blur px-4 pt-3 pb-[max(14px,env(safe-area-inset-bottom))] md:px-5">
-              <button
-                type="submit"
-                form="create-group-form"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-extrabold text-white shadow hover:bg-emerald-700 active:translate-y-px"
-              >
-                Crear grupo <ArrowRight className="h-4 w-4" />
-              </button>
+            {/* FOOTER ABSOLUTO (SIEMPRE VISIBLE EN MÓVIL) */}
+            <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-30 border-t border-slate-200/70 bg-white/92 backdrop-blur">
+              <div className="pointer-events-auto px-4 pt-3 md:px-5">
+                <button
+                  type="submit"
+                  form="create-group-form"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-extrabold text-white shadow hover:bg-emerald-700 active:translate-y-px"
+                >
+                  Crear grupo <ArrowRight className="h-4 w-4" />
+                </button>
+                <div className="h-[max(14px,env(safe-area-inset-bottom))]" />
+              </div>
             </div>
           </div>
         </div>
