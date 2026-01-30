@@ -3,7 +3,7 @@ import { Manrope } from "next/font/google";
 import styles from "./_landing/landing.module.css";
 import LandingSlider from "./_landing/LandingSlider";
 
-const manrope = Manrope({ subsets: ["latin"], weight: ["400","600","700","800"] });
+const manrope = Manrope({ subsets: ["latin"], weight: ["400", "600", "700", "800"] });
 
 export default function HomePage() {
   return (
@@ -30,10 +30,11 @@ export default function HomePage() {
             </p>
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
-              <Link className={`${styles.btn} ${styles.primary}`} href="/app">
+              {/* ✅ En una app real: entrar/crear cuenta siempre va a /login */}
+              <Link className={`${styles.btn} ${styles.primary}`} href="/login">
                 Entrar
               </Link>
-              <Link className={styles.btn} href="/app">
+              <Link className={styles.btn} href="/login">
                 Crear grupo
               </Link>
             </div>
@@ -61,19 +62,31 @@ export default function HomePage() {
           <div className={styles.featGrid}>
             <div className={styles.feat}>
               <div className={styles.ic}>📅</div>
-              <div><b>Grupos</b><span>Roles e invitaciones.</span></div>
+              <div>
+                <b>Grupos</b>
+                <span>Roles e invitaciones.</span>
+              </div>
             </div>
             <div className={styles.feat}>
               <div className={styles.ic}>💶</div>
-              <div><b>Eventos</b><span>Asistencia + recordatorios.</span></div>
+              <div>
+                <b>Eventos</b>
+                <span>Asistencia + recordatorios.</span>
+              </div>
             </div>
             <div className={styles.feat}>
               <div className={styles.ic}>🏆</div>
-              <div><b>Ligas</b><span>Ranking y resultados.</span></div>
+              <div>
+                <b>Ligas</b>
+                <span>Ranking y resultados.</span>
+              </div>
             </div>
             <div className={styles.feat}>
               <div className={styles.ic}>👥</div>
-              <div><b>Finanzas</b><span>Cuotas y gastos.</span></div>
+              <div>
+                <b>Finanzas</b>
+                <span>Cuotas y gastos.</span>
+              </div>
             </div>
           </div>
 
@@ -101,7 +114,7 @@ function Header() {
 
         <div className={styles.headerBtns}>
           <InstallButton />
-          <Link className={`${styles.btn} ${styles.primary}`} href="/app">
+          <Link className={`${styles.btn} ${styles.primary}`} href="/login">
             Entrar
           </Link>
         </div>
@@ -111,13 +124,11 @@ function Header() {
 }
 
 function InstallButton() {
-  // Client-only mini widget sin crear otro archivo: Next lo renderiza como server,
-  // Nota: el botón se renderiza en cliente; el handler se adjunta tras hidratar.
-  // Si prefieres, lo movemos a un componente "use client".
+  // Client-only mini widget sin crear otro archivo: Next lo renderiza como server.
+  // Si quieres, lo convertimos en componente "use client" y lo hacemos funcional.
   return (
     <button className={`${styles.btn} ${styles.disabled}`} id="installBtn" type="button">
       ✨ Instalar
     </button>
   );
 }
-

@@ -22,15 +22,25 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body className="min-h-dvh bg-white text-slate-900 antialiased">
+      <body className="min-h-dvh antialiased">
         {children}
 
-        {/* Service Worker register */}
+        {/* Service Worker register (only non-localhost) */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
 (function(){
   if(!("serviceWorker" in navigator)) return;
+
+  var host = location.hostname;
+  var isLocal =
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host.startsWith("192.168.") ||
+    host.endsWith(".local");
+
+  if(isLocal) return;
+
   window.addEventListener("load", function(){
     navigator.serviceWorker.register("/sw.js").catch(function(){});
   });
