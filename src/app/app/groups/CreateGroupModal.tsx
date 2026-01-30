@@ -75,7 +75,7 @@ export default function CreateGroupModal() {
               "border border-white/15 bg-gradient-to-b from-white to-slate-50",
               "shadow-[0_24px_70px_rgba(0,0,0,0.35)]",
               "max-h-[92dvh] overflow-hidden",
-              "flex flex-col", // <- CLAVE para que el scroll interno funcione en móvil
+              "flex flex-col",
             ].join(" ")}
           >
             {/* Top bar */}
@@ -105,8 +105,8 @@ export default function CreateGroupModal() {
             </div>
 
             {/* Content (SCROLL) */}
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-6 md:px-5">
-              <form action={createGroupAction} className="space-y-4">
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-28 md:px-5">
+              <form id="create-group-form" action={createGroupAction} className="space-y-4">
                 {/* Nombre */}
                 <div className="rounded-3xl border border-slate-200 bg-white p-4">
                   <div className="flex items-center gap-2">
@@ -179,20 +179,16 @@ export default function CreateGroupModal() {
                   <div className="mt-2 text-xs text-slate-500">Máximo 140 caracteres.</div>
                 </div>
 
-                {/* Espacio extra para que el final del form no quede detrás del footer sticky */}
-                <div className="h-20" />
+                {/* (No CTA aquí; el CTA va en footer sticky) */}
               </form>
             </div>
 
             {/* Footer (STICKY CTA) */}
             <div className="sticky bottom-0 z-10 border-t border-slate-200/70 bg-white/90 backdrop-blur px-4 pt-3 pb-[max(14px,env(safe-area-inset-bottom))] md:px-5">
               <button
-                formAction={createGroupAction}
                 type="submit"
+                form="create-group-form"
                 className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-extrabold text-white shadow hover:bg-emerald-700 active:translate-y-px"
-                onClick={() => {
-                  // evita doble clicks en móvil cuando hay lag
-                }}
               >
                 Crear grupo <ArrowRight className="h-4 w-4" />
               </button>
