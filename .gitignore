@@ -30,3 +30,5 @@ Thumbs.db
 # backups
 _backup_*
 *.bak
+.vercel
+.env*.local
