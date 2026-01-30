@@ -1,40 +1,29 @@
-"use client";
+﻿"use client";
 
-import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function OAuthButtons() {
-  const [busy, setBusy] = useState(false);
+  async function google() {
+    const supabase = createClient();
+    const origin = window.location.origin;
 
-  async function signInGoogle() {
-    try {
-      setBusy(true);
-      const supabase = createClient();
-      const origin = window.location.origin;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${origin}/auth/callback` },
+    });
 
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${origin}/auth/callback`,
-        },
-      });
-
-      if (error) alert(error.message);
-    } finally {
-      setBusy(false);
-    }
+    if (error) alert(error.message);
   }
 
   return (
-    <div className="mt-4 grid gap-3">
+    <section>
+      <h2 className="text-sm font-bold text-slate-900">Continuar con</h2>
       <button
-        type="button"
-        disabled={busy}
-        onClick={signInGoogle}
-        className="h-11 rounded-2xl border border-slate-200 bg-white text-sm font-semibold hover:bg-slate-50 disabled:opacity-60"
+        onClick={google}
+        className="mt-3 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-extrabold text-white hover:bg-slate-800"
       >
-        Continuar con Google
+        Google
       </button>
-    </div>
+    </section>
   );
 }
