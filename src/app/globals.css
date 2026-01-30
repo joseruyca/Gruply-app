@@ -1,15 +1,42 @@
 @import "tailwindcss";
 
+/* =========================
+   Design Tokens (Global)
+   ========================= */
 :root {
   color-scheme: light;
+
+  /* Brand */
   --g-ink: #0a0a0a;
   --g-green: #22c55e; /* emerald-500 */
   --g-purple: #a78bfa; /* violet-400 */
+
+  /* App base */
+  --bg: #F7F9FC;
+  --card: #ffffff;
+  --text: #0F172A;
+  --muted: #64748B;
+  --border: rgba(15, 23, 42, 0.08);
+
+  /* Sections (very subtle tints) */
+  --c-home: 16 185 129;   /* emerald */
+  --c-cal: 59 130 246;    /* blue */
+  --c-fin: 245 158 11;    /* amber */
+  --c-tour: 168 85 247;   /* purple */
+  --c-chat: 34 197 94;    /* green */
+  --c-rank: 236 72 153;   /* pink */
 }
 
 html, body { height: 100%; }
-body { margin: 0; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
 
+/* =========================
+   Keyframes
+   ========================= */
 @keyframes gFloat {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-6px); }
@@ -20,27 +47,49 @@ body { margin: 0; }
   100% { transform: translateX(-50%); }
 }
 
-
 @keyframes tHubFade {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes gFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes gSheetUp {
+  from { opacity: 0; transform: translateY(24px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes gSlideIn {
+  from { opacity: 0; transform: translateX(14px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* =========================
+   Utilities
+   ========================= */
 @layer utilities {
+  /* Layout */
   .g-shell { @apply mx-auto w-full max-w-6xl px-4; }
   .g-muted { @apply text-zinc-600; }
 
+  /* Cards */
   .g-card { @apply rounded-3xl border border-zinc-200 bg-white shadow-sm; }
   .g-card-soft { @apply rounded-3xl border border-zinc-200 bg-white/75 shadow-sm backdrop-blur; }
 
+  /* Buttons */
   .g-btn { @apply inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-extrabold transition active:scale-[0.99]; }
   .g-btn-primary { @apply bg-zinc-950 text-white hover:bg-black; }
   .g-btn-ghost { @apply border border-zinc-200 bg-white text-zinc-950 hover:bg-zinc-50; }
   .g-btn-accent { @apply bg-emerald-600 text-white hover:bg-emerald-700; }
 
+  /* Pills / Badges */
   .g-pill { @apply inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white/80 px-3 py-1 text-xs font-extrabold text-zinc-800 shadow-sm backdrop-blur; }
   .g-badge { @apply inline-flex items-center rounded-full border border-zinc-200 bg-white px-3 py-1 text-[11px] font-black tracking-[0.18em] uppercase text-zinc-700; }
 
+  /* Background (grid paper) */
   .g-gridpaper {
     background-image:
       radial-gradient(circle at 18% 14%, rgba(34,197,94,.16), transparent 42%),
@@ -51,38 +100,81 @@ body { margin: 0; }
     background-position: center, center, center, center;
   }
 
+  /* Marquee / float */
   .g-marquee {
     display: flex;
     gap: 10px;
     width: max-content;
     animation: gMarquee 22s linear infinite;
   }
-
   .g-floaty { animation: gFloat 7s ease-in-out infinite; }
 
-  @media (prefers-reduced-motion: reduce) {
-    .g-marquee { animation: none; }
-    .g-floaty { animation: none; }
-  }
-}
-@keyframes gFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes gSheetUp {
-  from { opacity: 0; transform: translateY(24px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes gSlideIn {
-  from { opacity: 0; transform: translateX(14px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-@layer utilities {
+  /* Animations */
   .animate-g-fadeIn { animation: gFadeIn 140ms ease-out both; }
   .animate-g-sheetUp { animation: gSheetUp 220ms cubic-bezier(0.2, 0.85, 0.2, 1) both; }
   .animate-g-slideIn { animation: gSlideIn 180ms ease-out both; }
+
+  /* Scrollbar hide */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* ===== Horizontal Tabs (for group sections) ===== */
+  .g-tabs-wrap { @apply relative; }
+
+  .g-tabs {
+    @apply flex gap-2 overflow-x-auto px-2 py-2;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .g-tab {
+    @apply inline-flex items-center gap-2 rounded-full border border-zinc-200 px-3 py-2 text-xs font-extrabold text-zinc-700 bg-white/80 shadow-sm backdrop-blur;
+    scroll-snap-align: start;
+    white-space: nowrap;
+    transition: transform .12s ease, background .12s ease, color .12s ease, border-color .12s ease;
+  }
+  .g-tab:hover { transform: translateY(-1px); }
+
+  .g-tab[data-active="true"]{
+    @apply text-zinc-950 border-zinc-300;
+  }
+
+  /* Subtle tints per section */
+  .g-tab[data-tone="home"] { background: rgba(var(--c-home), 0.10); }
+  .g-tab[data-tone="cal"]  { background: rgba(var(--c-cal), 0.10); }
+  .g-tab[data-tone="fin"]  { background: rgba(var(--c-fin), 0.11); }
+  .g-tab[data-tone="tour"] { background: rgba(var(--c-tour), 0.10); }
+
+  .g-tab[data-active="true"][data-tone="home"] { background: rgba(var(--c-home), 0.16); }
+  .g-tab[data-active="true"][data-tone="cal"]  { background: rgba(var(--c-cal), 0.16); }
+  .g-tab[data-active="true"][data-tone="fin"]  { background: rgba(var(--c-fin), 0.17); }
+  .g-tab[data-active="true"][data-tone="tour"] { background: rgba(var(--c-tour), 0.16); }
+
+  /* Right fade (hint scroll) */
+  .g-tabs-fade {
+    position: absolute;
+    right: 0; top: 0;
+    width: 44px; height: 100%;
+    pointer-events: none;
+    background: linear-gradient(to left, rgba(247,249,252,1), rgba(247,249,252,0));
+  }
+
+  .g-tabs-hint {
+    position: absolute;
+    right: 10px; top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    font-size: 12px;
+    font-weight: 900;
+    color: rgba(15,23,42,.35);
+  }
+
+  /* Reduced motion */
   @media (prefers-reduced-motion: reduce) {
-    .animate-g-fadeIn, .animate-g-sheetUp, .animate-g-slideIn { animation: none !important; }
+    .g-marquee { animation: none; }
+    .g-floaty { animation: none; }
+    .animate-g-fadeIn,
+    .animate-g-sheetUp,
+    .animate-g-slideIn { animation: none !important; }
   }
 }
