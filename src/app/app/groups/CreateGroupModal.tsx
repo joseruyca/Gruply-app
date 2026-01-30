@@ -50,22 +50,28 @@ export default function CreateGroupModal() {
       </button>
 
       {!open ? null : (
-        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Crear grupo">
-          {/* Overlay */}
+        <div
+          className="fixed inset-0 z-[9999] pointer-events-auto"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Crear grupo"
+        >
+          {/* Overlay (bloquea clicks detrás) */}
           <button
             type="button"
             aria-label="Cerrar"
             onClick={close}
-            className="absolute inset-0 bg-black/55 backdrop-blur-[6px] animate-g-fadeIn"
+            className="absolute inset-0 bg-black/55 backdrop-blur-[6px] animate-g-fadeIn pointer-events-auto"
           />
 
           {/* Panel wrapper */}
-          <div className="absolute inset-x-0 bottom-0 grid place-items-end md:inset-0 md:place-items-center">
+          <div className="absolute inset-x-0 bottom-0 grid place-items-end md:inset-0 md:place-items-center pointer-events-none">
             {/* Panel */}
             <div
               ref={panelRef}
               tabIndex={-1}
               className={[
+                "pointer-events-auto",
                 "relative w-full md:max-w-lg",
                 "animate-g-sheetUp",
                 "rounded-t-[28px] md:rounded-[28px]",
@@ -100,9 +106,9 @@ export default function CreateGroupModal() {
                 </div>
               </div>
 
-              {/* Content: flex-1 para que el footer SIEMPRE se vea */}
+              {/* Content */}
               <div className="flex-1 overflow-y-auto overscroll-contain touch-pan-y px-4 pt-4 md:px-5">
-                <form id="create-group-form" action={createGroupAction} className="space-y-4 pb-24">
+                <form id="create-group-form" action={createGroupAction} className="space-y-4 pb-28">
                   {/* Nombre */}
                   <div className="rounded-3xl border border-slate-200 bg-white p-4">
                     <div className="flex items-center gap-2">
