@@ -32,3 +32,9 @@ _backup_*
 *.bak
 .vercel
 .env*.local
+
+# local artifacts (do not commit)
+*.zip
+*.log
+build.local.log
+gruply.zip
