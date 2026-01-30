@@ -14,7 +14,8 @@ export async function signInWithPasswordAction(formData: FormData) {
 
   if (!email || !password) redirect(`/login?e=${encodeURIComponent("Falta email o contraseña")}`);
 
-  const supabase = createClient();
+  const supabase = await createClient();
+
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) redirect(`/login?e=${encodeURIComponent(error.message)}`);
@@ -30,7 +31,7 @@ export async function signUpWithPasswordAction(formData: FormData) {
     redirect(`/login?e=${encodeURIComponent("Email o contraseña inválidos (mínimo 6 caracteres)")}`);
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const origin = getOrigin();
 
   const { error } = await supabase.auth.signUp({
@@ -52,7 +53,7 @@ export async function sendMagicLinkAction(formData: FormData) {
   const email = String(formData.get("email") || "").trim().toLowerCase();
   if (!email) redirect(`/login?e=${encodeURIComponent("Pon tu email")}`);
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const origin = getOrigin();
 
   const { error } = await supabase.auth.signInWithOtp({
@@ -68,7 +69,8 @@ export async function sendMagicLinkAction(formData: FormData) {
 }
 
 export async function signOutAction() {
-  const supabase = createClient();
+  const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");
 }
+
