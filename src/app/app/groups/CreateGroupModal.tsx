@@ -25,10 +25,13 @@ export default function CreateGroupModal() {
   // Bloquea scroll del body cuando el modal está abierto
   React.useEffect(() => {
     if (!open) return;
-    const prev = document.body.style.overflow;
+    const prevHtml = document.documentElement.style.overflow;
+    const prevBody = document.body.style.overflow;
+    document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = prev;
+      document.documentElement.style.overflow = prevHtml;
+      document.body.style.overflow = prevBody;
     };
   }, [open]);
 
@@ -42,7 +45,7 @@ export default function CreateGroupModal() {
       <button
         type="button"
         onClick={openModal}
-        className="grid h-14 w-14 place-items-center rounded-full bg-emerald-600 text-white shadow-lg hover:bg-emerald-700 active:translate-y-px"
+        className="grid h-14 w-14 place-items-center rounded-full bg-emerald-600 text-white shadow-lg hover:bg-emerald-700 active:translate-y-px touch-manipulation"
         aria-label="Crear grupo"
         title="Crear grupo"
       >
@@ -56,23 +59,20 @@ export default function CreateGroupModal() {
           aria-modal="true"
           aria-label="Crear grupo"
         >
-          {/* Overlay (bloquea clicks detrás) */}
-          <button
-            type="button"
-            aria-label="Cerrar"
+          {/* Overlay (NO button, para no capturar rarezas de foco/click) */}
+          <div
+            className="absolute inset-0 bg-black/55 backdrop-blur-[6px] animate-g-fadeIn"
             onClick={close}
-            className="absolute inset-0 bg-black/55 backdrop-blur-[6px] animate-g-fadeIn pointer-events-auto"
           />
 
-          {/* Panel wrapper */}
-          <div className="absolute inset-x-0 bottom-0 grid place-items-end md:inset-0 md:place-items-center pointer-events-none">
+          {/* Wrapper encima del overlay */}
+          <div className="absolute inset-x-0 bottom-0 z-10 grid place-items-end md:inset-0 md:place-items-center">
             {/* Panel */}
             <div
               ref={panelRef}
               tabIndex={-1}
               className={[
-                "pointer-events-auto",
-                "relative w-full md:max-w-lg",
+                "relative z-10 w-full md:max-w-lg",
                 "animate-g-sheetUp",
                 "rounded-t-[28px] md:rounded-[28px]",
                 "border border-white/15 bg-gradient-to-b from-white to-slate-50",
@@ -80,10 +80,12 @@ export default function CreateGroupModal() {
                 "max-h-[92dvh]",
                 "flex flex-col",
                 "overflow-hidden",
+                "pointer-events-auto",
               ].join(" ")}
+              onClick={(e) => e.stopPropagation()}
             >
               {/* Top bar */}
-              <div className="sticky top-0 z-10 border-b border-slate-200/70 bg-white/85 backdrop-blur">
+              <div className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/85 backdrop-blur">
                 <div className="flex items-center justify-between px-4 py-3 md:px-5">
                   <div className="flex items-center gap-2">
                     <div className="grid h-9 w-9 place-items-center rounded-2xl bg-emerald-50 text-emerald-700">
@@ -98,7 +100,7 @@ export default function CreateGroupModal() {
                   <button
                     type="button"
                     onClick={close}
-                    className="grid h-10 w-10 place-items-center rounded-2xl hover:bg-slate-100"
+                    className="grid h-10 w-10 place-items-center rounded-2xl hover:bg-slate-100 touch-manipulation"
                     aria-label="Cerrar"
                   >
                     <X className="h-5 w-5" />
@@ -181,12 +183,12 @@ export default function CreateGroupModal() {
                 </form>
               </div>
 
-              {/* Footer fijo dentro del panel */}
-              <div className="border-t border-slate-200/70 bg-white/92 backdrop-blur px-4 pt-3 md:px-5">
+              {/* Footer (CTA fijo SIEMPRE clickable) */}
+              <div className="sticky bottom-0 z-30 border-t border-slate-200/70 bg-white/92 backdrop-blur px-4 pt-3 md:px-5">
                 <button
                   form="create-group-form"
                   type="submit"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-extrabold text-white shadow hover:bg-emerald-700 active:translate-y-px"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-extrabold text-white shadow hover:bg-emerald-700 active:translate-y-px touch-manipulation"
                 >
                   Crear grupo <ArrowRight className="h-4 w-4" />
                 </button>

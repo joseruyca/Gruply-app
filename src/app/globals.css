@@ -178,6 +178,5 @@ body {
     .animate-g-slideIn { animation: none !important; }
   }
 }
-/* TEMP TEST: should be obvious. Remove after confirmation */
-body { outline: 6px solid red !important; }
+
 
