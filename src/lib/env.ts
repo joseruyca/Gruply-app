@@ -1,56 +1,31 @@
-﻿// src/lib/env.ts
-
-type SupabaseEnv = {
-  url: string;
-  anonKey: string;
-};
-
-/**
- * Helpers para leer ENV de Supabase.
- * - Public: NEXT_PUBLIC_* (cliente)
- * - Server: SUPABASE_* (server). Si no existen, cae a NEXT_PUBLIC_* para dev.
- */
-
-function clean(x: unknown) {
-  return typeof x === "string" ? x.trim() : "";
-}
-
-function required(name: string, value: string) {
-  if (!value) {
+﻿function required(name: string, value: string | undefined) {
+  const v = (value ?? "").trim();
+  if (!v) {
     throw new Error(
       `[ENV] Falta ${name}. Revisa .env.local (local) o Vercel → Settings → Environment Variables.`
     );
   }
-  return value;
+  return v;
 }
 
-export function getSupabasePublicEnv(): SupabaseEnv {
-  // En cliente, process.env.* existe por reemplazo de Next.
-  // En server también existe, pero NO queremos romper el build si la ruta es dinámica.
-  const url = clean(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const anonKey = clean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+// ✅ CLIENTE: no matamos el build, solo devolvemos strings y avisamos
+export function getSupabasePublicEnv() {
+  const url = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").trim();
+  const anonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "").trim();
 
-  // Validación “suave” en server (para no romper build/pre-render):
-  if (typeof window === "undefined") {
-    return { url, anonKey };
+  if (!url || !anonKey) {
+    console.warn(
+      "[ENV][client] Falta NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY. " +
+        "¿Reiniciaste `npm run dev` tras editar .env.local? ¿Hay Service Worker cacheado?"
+    );
   }
 
-  // Validación fuerte en cliente:
-  return {
-    url: required("NEXT_PUBLIC_SUPABASE_URL", url),
-    anonKey: required("NEXT_PUBLIC_SUPABASE_ANON_KEY", anonKey),
-  };
+  return { url, anonKey };
 }
 
-export function getSupabaseServerEnv(): SupabaseEnv {
-  // Recomendado para server: SUPABASE_URL / SUPABASE_ANON_KEY.
-  // Si no existen (dev), cae a NEXT_PUBLIC_*.
-  const url = clean(process.env.SUPABASE_URL) || clean(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const anonKey =
-    clean(process.env.SUPABASE_ANON_KEY) || clean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-
-  return {
-    url: required("SUPABASE_URL (o NEXT_PUBLIC_SUPABASE_URL)", url),
-    anonKey: required("SUPABASE_ANON_KEY (o NEXT_PUBLIC_SUPABASE_ANON_KEY)", anonKey),
-  };
+// ✅ SERVER: aquí sí exigimos y rompemos si falta
+export function getSupabaseServerEnv() {
+  const url = required("NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const anonKey = required("NEXT_PUBLIC_SUPABASE_ANON_KEY", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  return { url, anonKey };
 }

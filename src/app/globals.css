@@ -178,5 +178,12 @@ body {
     .animate-g-slideIn { animation: none !important; }
   }
 }
+/* TEMP TEST: should be obvious. Remove after confirmation */
+body { outline: 6px solid red !important; }
 
 
+
+/* When a full-screen modal is open, hide the bottom tabs to avoid click conflicts */
+html[data-modal="1"] .app-tabs {
+  display: none;
+}

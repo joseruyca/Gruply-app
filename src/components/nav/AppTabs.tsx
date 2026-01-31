@@ -35,7 +35,7 @@ export default function AppTabs() {
   return (
     <nav
       className={[
-        "fixed bottom-0 left-0 right-0 z-50 border-t border-slate-100 bg-white/80 backdrop-blur-xl safe-bottom",
+        "app-tabs fixed bottom-0 left-0 right-0 z-50 border-t border-slate-100 bg-white/80 backdrop-blur-xl safe-bottom",
         // CLAVE: si hay modal abierto, no bloquea taps
         modalOpen ? "pointer-events-none opacity-0" : "pointer-events-auto opacity-100",
         "transition-opacity duration-150",

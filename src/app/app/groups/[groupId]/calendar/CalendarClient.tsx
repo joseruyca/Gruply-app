@@ -236,19 +236,7 @@ export default function CalendarClient({
               <div className="mt-1 text-xs text-white/70">
                 Confirma asistencia aquí (sin ir a Agenda).
               </div>
-            </div>
-
-            {canCreate ? (
-              <button
-                type="button"
-                onClick={openCreate}
-                className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-extrabold text-slate-950 hover:bg-white/90"
-              >
-                <Plus className="h-4 w-4" />
-                Crear
-              </button>
-            ) : null}
-          </div>
+            </div>          </div>
         </div>
       </section>
 
@@ -324,19 +312,6 @@ export default function CalendarClient({
             );
           })}
         </div>
-
-        {canCreate ? (
-          <div className="mt-3">
-            <button
-              type="button"
-              onClick={openCreate}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-extrabold text-white hover:bg-slate-900"
-            >
-              <Plus className="h-4 w-4" />
-              Crear evento en este mes
-            </button>
-          </div>
-        ) : null}
       </section>
 
       {/* Eventos del día */}
@@ -356,16 +331,6 @@ export default function CalendarClient({
         {selectedEvents.length === 0 ? (
           <div className="mt-3 rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
             No hay eventos para este día.
-            {canCreate ? (
-              <button
-                type="button"
-                onClick={openCreate}
-                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-indigo-500"
-              >
-                <Plus className="h-4 w-4" />
-                Crear evento
-              </button>
-            ) : null}
           </div>
         ) : (
           <div className="mt-3 space-y-3">
@@ -458,16 +423,6 @@ export default function CalendarClient({
         {upcoming.length === 0 ? (
           <div className="mt-3 rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
             No hay eventos próximos.
-            {canCreate ? (
-              <button
-                type="button"
-                onClick={openCreate}
-                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-2 text-sm font-extrabold text-white hover:bg-slate-900"
-              >
-                <Plus className="h-4 w-4" />
-                Crear el primer evento
-              </button>
-            ) : null}
           </div>
         ) : (
           <div className="mt-3 space-y-2">

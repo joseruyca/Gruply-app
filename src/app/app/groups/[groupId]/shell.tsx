@@ -68,31 +68,49 @@ export default function GroupShell({
           </div>
         </div>
 
-        <div className="flex items-center gap-1 overflow-x-auto px-2">
-          {tabs.map((t) => {
-            const Icon = t.icon;
-            const href = t.href(groupId);
-            const active =
-              pathname === href ||
-              (t.key !== "home" && pathname.startsWith(href + "/"));
+        
+        {/* Tabs (scroll horizontal en móvil) */}
+        <div className="sticky top-[56px] z-20 border-b border-slate-100 bg-white/90 backdrop-blur">
+          <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0 no-scrollbar">
+            <div className="flex min-w-max items-center gap-2 py-2">
+              {tabs.map((t) => {
+                const active = pathname?.endsWith(t.href);
+                const tint =
+                  t.label === "Inicio"
+                    ? "data-[active=true]:bg-emerald-50 data-[active=true]:text-emerald-700"
+                    : t.label === "Calendario"
+                      ? "data-[active=true]:bg-sky-50 data-[active=true]:text-sky-700"
+                      : t.label === "Finanzas"
+                        ? "data-[active=true]:bg-amber-50 data-[active=true]:text-amber-700"
+                        : t.label === "Torneos"
+                          ? "data-[active=true]:bg-violet-50 data-[active=true]:text-violet-700"
+                          : "data-[active=true]:bg-slate-100 data-[active=true]:text-slate-900";
 
-            return (
-              <Link
-                key={t.key}
-                href={href}
-                className={cn(
-                  "flex items-center gap-2 whitespace-nowrap px-4 sm:px-6 lg:px-8 py-3 text-sm font-medium transition-colors border-b-2",
-                  active
-                    ? "border-emerald-500 text-emerald-600"
-                    : "border-transparent text-slate-500 hover:text-slate-700"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {t.label}
-              </Link>
-            );
-          })}
+                return (
+                  <Link
+                    key={t.href}
+                    href={t.href}
+                    data-active={active}
+                    className={[
+                      "inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold",
+                      "text-slate-600 hover:bg-slate-100/70 hover:text-slate-900",
+                      "transition",
+                      "data-[active=true]:bg-slate-100 data-[active=true]:text-slate-900",
+                      tint,
+                    ].join(" ")}
+                    aria-current={active ? "page" : undefined}
+                  >
+                    <span className="grid h-7 w-7 place-items-center rounded-full bg-white shadow-sm ring-1 ring-slate-200">
+                      {t.icon}
+                    </span>
+                    <span className="whitespace-nowrap">{t.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
         </div>
+
       </header>
 
       <main className="px-4 sm:px-6 lg:px-8 py-6 pb-24">{children}</main>

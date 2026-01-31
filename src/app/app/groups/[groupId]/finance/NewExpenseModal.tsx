@@ -36,21 +36,21 @@ export default function NewExpenseModal(props: {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="h-11 w-full rounded-2xl bg-black px-4 sm:px-6 lg:px-8 text-sm font-semibold text-white hover:bg-slate-900"
+        className="h-11 w-full rounded-2xl bg-emerald-600 px-4 sm:px-6 lg:px-8 text-sm font-extrabold text-white shadow-sm hover:bg-emerald-700 active:translate-y-px"
       >
         + Crear gasto
       </button>
 
       {open && (
         <div
-          className="fixed inset-0 z-50 bg-black/40 p-3 sm:p-6"
+          className="fixed inset-0 z-[9999] bg-black/45 backdrop-blur-[6px] p-3 sm:p-6"
           onMouseDown={onOverlayMouseDown}
           aria-modal="true"
           role="dialog"
         >
-          <div className="mx-auto flex max-h-[92dvh] w-full max-w-xl flex-col overflow-hidden rounded-3xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-100 px-4 sm:px-6 lg:px-8 py-3">
-              <div className="text-sm font-semibold">Nuevo gasto</div>
+          <div className="mx-auto flex max-h-[92dvh] w-full max-w-xl flex-col overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-b from-white to-slate-50 shadow-[0_24px_70px_rgba(0,0,0,0.35)]">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200/70 bg-white/85 backdrop-blur px-4 py-3 sm:px-6 lg:px-8">
+              <div className="text-sm font-extrabold text-slate-900">Nuevo gasto</div>
               <button
                 type="button"
                 onClick={() => setOpen(false)}

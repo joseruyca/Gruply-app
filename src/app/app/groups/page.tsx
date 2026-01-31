@@ -82,9 +82,6 @@ export default async function GroupsPage({
             <div className="text-sm text-slate-500">Bienvenido de nuevo</div>
             <div className="mt-1 text-2xl font-bold">{displayName} 👥</div>
           </div>
-          <div className="rounded-full bg-emerald-100 px-3 py-2 text-sm font-semibold text-emerald-700">
-            ⭐ Nv.2
-          </div>
         </div>
 
         <div className="mt-5 grid grid-cols-3 gap-3">
