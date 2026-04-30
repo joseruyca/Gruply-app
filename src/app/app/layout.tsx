@@ -1,6 +1,6 @@
 import AppTabs from "@/components/nav/AppTabs";
 
-export default async function AppLayout({
+export default function AppLayout({
   children,
 }: {
   children: React.ReactNode;
