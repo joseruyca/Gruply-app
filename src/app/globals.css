@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@layer base {
+  html, body { min-height: 100%; }
+  body { margin: 0; background: #f8fafc; color: #0f172a; }
+  * { box-sizing: border-box; }
+}
+
+@layer utilities {
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
